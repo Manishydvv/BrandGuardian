@@ -58,36 +58,51 @@ class VideoIndexerService:
 
     # --- NEW FUNCTION: Download from YouTube ---
     def download_youtube_video(self, url, output_path="temp_video.mp4"):
-        """Downloads a YouTube video to a local file."""
+        """Downloads a YouTube video to a local file. Tries multiple strategies."""
         logger.info(f"Downloading YouTube video: {url}")
-        
-        ydl_opts = {
-            'format': 'best[height<=720]',
-            'outtmpl': output_path,
-            'quiet': False,
-            'no_warnings': False,
-            'extractor_args': {'youtube': {'player_client': ['web_creator', 'mweb']}},
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-                'Accept-Language': 'en-US,en;q=0.9',
-            },
-            'socket_timeout': 30,
-            'retries': 3,
-        }
 
         # Use cookies file if available (for cloud deployments)
         cookies_path = os.path.join(os.path.dirname(__file__), '..', '..', 'cookies.txt')
-        if os.path.exists(cookies_path):
-            ydl_opts['cookiefile'] = cookies_path
+        has_cookies = os.path.exists(cookies_path)
+        if has_cookies:
             print("🍪 Using cookies.txt for YouTube auth")
-        
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
-            logger.info("Download complete.")
-            return output_path
-        except Exception as e:
-            raise Exception(f"YouTube Download Failed: {str(e)}")
+
+        # Try different client strategies in order
+        strategies = [
+            {'name': 'tv_embedded', 'client': ['tv_embedded'], 'format': 'best'},
+            {'name': 'ios',         'client': ['ios'],          'format': 'best'},
+            {'name': 'default',     'client': ['default'],      'format': 'best/worst'},
+        ]
+
+        last_error = None
+        for strategy in strategies:
+            print(f"📺 Trying YouTube client: {strategy['name']}")
+            ydl_opts = {
+                'format': strategy['format'],
+                'outtmpl': output_path,
+                'quiet': True,
+                'no_warnings': True,
+                'extractor_args': {'youtube': {'player_client': strategy['client']}},
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                },
+                'socket_timeout': 30,
+                'retries': 3,
+            }
+            if has_cookies:
+                ydl_opts['cookiefile'] = cookies_path
+
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([url])
+                logger.info(f"Download complete (client: {strategy['name']})")
+                return output_path
+            except Exception as e:
+                last_error = e
+                print(f"   ❌ {strategy['name']} failed: {str(e)[:80]}")
+                continue
+
+        raise Exception(f"YouTube Download Failed (all strategies): {str(last_error)}")
 
     # --- UPDATED FUNCTION: Upload Local File ---
     def upload_video(self, video_path, video_name):
