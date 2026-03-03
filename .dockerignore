@@ -1,0 +1,27 @@
+# Virtual environments
+.venv/
+__pycache__/
+.env
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Docs & misc
+README.md
+*.md
+backend/tests/
+
+# Azure Functions (not needed in container)
+azure_functions/
+
+# Old files
+backend/Dockerfile
+streamlit_app.py
+
+# Lock file not needed if we use --frozen
+# uv.lock is needed for --frozen flag, so don't exclude it
