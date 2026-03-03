@@ -15,6 +15,9 @@ RUN uv sync --frozen --no-dev --no-install-project
 # ===== Stage 2: Runtime =====
 FROM python:3.12-slim
 
+# Install ffmpeg (needed by yt-dlp to merge HLS video segments)
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # Copy virtual environment from builder
