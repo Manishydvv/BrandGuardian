@@ -11,3 +11,16 @@ wheels/
 
 # Environment secrets
 .env
+cookies.txt
+
+# Temp files
+*.mp4
+temp_*
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
